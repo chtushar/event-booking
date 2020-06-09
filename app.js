@@ -2,6 +2,7 @@ require("dotenv").config();
 require("./db/mongoose");
 const express = require("express");
 const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt");
 const graphqlHTTP = require("express-graphql");
 const { buildSchema } = require("graphql");
 const app = express();
@@ -9,6 +10,7 @@ const cors = require("cors");
 const PORT = process.env.PORT || 4000;
 
 const Event = require("./models/event");
+const User = require("./models/user");
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -42,11 +44,22 @@ app.use(
         date: String!
       }
 
+      type User {
+        _id: ID!
+        email: String!
+        password: String
+      }
+
       input EventInput {
         title: String!
         description: String!
         price: Float!
         date: String!
+      }
+
+      input UserInput {
+        email: String!
+        password: String!
       }
 
       type RootQuery{
@@ -55,6 +68,7 @@ app.use(
 
       type RootMutation{
           createEvent(eventInput: EventInput): Event
+          createUser(userInput: UserInput): User
       }
 
       schema {
@@ -64,7 +78,15 @@ app.use(
     `),
     rootValue: {
       events: () => {
-        return eventsList;
+        return Event.find()
+          .then((events) => {
+            return events.map((event) => {
+              return { ...event._doc };
+            });
+          })
+          .catch((err) => {
+            throw err;
+          });
       },
 
       createEvent: (args) => {
@@ -85,6 +107,31 @@ app.use(
           .catch((err) => {
             console.log(err);
             throw Error;
+          });
+      },
+
+      createUser: (args) => {
+        return User.findOne({ email: args.userInput.email })
+          .then((user) => {
+            if (user) {
+              throw new Error("User exists already.");
+            }
+
+            return bcrypt.hash(args.userInput.password, 12);
+          })
+          .then((pass) => {
+            const user = new User({
+              email: args.userInput.email,
+              password: pass,
+            });
+
+            return user.save();
+          })
+          .then((result) => {
+            return { ...result._doc };
+          })
+          .catch((err) => {
+            throw err;
           });
       },
     },
