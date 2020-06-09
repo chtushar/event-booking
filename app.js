@@ -1,12 +1,16 @@
+require("dotenv").config();
+require("./db/mongoose");
 const express = require("express");
 const bodyParser = require("body-parser");
 const graphqlHTTP = require("express-graphql");
 const { buildSchema } = require("graphql");
 
 const app = express();
+const cors = require("cors");
 const PORT = process.env.PORT || 4000;
 
 app.use(bodyParser.json());
+app.use(cors());
 
 const eventsList = [
   {
@@ -65,9 +69,9 @@ app.use(
       createEvent: (args) => {
         const event = {
           _id: Math.random().toString(),
-          title: args.title,
-          description: args.description,
-          price: +args.event,
+          title: args.eventInput.title,
+          description: args.eventInput.description,
+          price: +args.eventInput.event,
           date: new Date().toISOString(),
         };
 
