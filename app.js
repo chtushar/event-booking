@@ -4,10 +4,11 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const graphqlHTTP = require("express-graphql");
 const { buildSchema } = require("graphql");
-
 const app = express();
 const cors = require("cors");
 const PORT = process.env.PORT || 4000;
+
+const Event = require("./models/event");
 
 app.use(bodyParser.json());
 app.use(cors());
@@ -67,16 +68,24 @@ app.use(
       },
 
       createEvent: (args) => {
-        const event = {
-          _id: Math.random().toString(),
+        const event = new Event({
           title: args.eventInput.title,
           description: args.eventInput.description,
-          price: +args.eventInput.event,
-          date: new Date().toISOString(),
-        };
+          date: new Date("2020-06-09T12:38:42.030Z"),
+          price: parseFloat(args.eventInput.price),
+        });
 
-        eventsList.push(event);
-        return event;
+        console.log(args.eventInput.date);
+        return event
+          .save()
+          .then((result) => {
+            console.log(result);
+            return { ...result._doc };
+          })
+          .catch((err) => {
+            console.log(err);
+            throw Error;
+          });
       },
     },
     graphiql: true,
